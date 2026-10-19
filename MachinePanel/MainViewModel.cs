@@ -5,87 +5,67 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
 using System.Windows.Threading;
-
-namespace MachinePanel;
-
-public enum MachineState
-{
-    Idle,
-    Running,
-    Stopped,
-    Alarm
-}
-
+using MachinePanel;
 
 public partial class MainViewModel : ObservableObject
 {
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(StopCommand), nameof(TriggerAlarmCommand), nameof(ResetAlarmCommand))]
-    private MachineState _state = MachineState.Idle;
-
-    public ObservableCollection<string> Log { get; } = new();
-
+    private readonly Machine _machine = new();
     private readonly DispatcherTimer _timer;
 
-    private const double FaultChance = 0.05;
-
-    private static readonly string[] s_faultReasons =
-    {
-        "Conveyer jam",
-        "Sensor timeout",
-        "Vacuum pressure low"
-    };
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(StopCommand), nameof(TriggerAlarmCommand), nameof(ResetAlarmCommand))]
+    private MachineState _state;
 
     [ObservableProperty]
     private int _partCount;
 
+    public ObservableCollection<string> Log { get; } = new();
+
     public MainViewModel()
     {
+        _machine.StateChanged += OnMachineStateChanged;
+        _machine.PartCountChanged += OnMachinePartCountChanged;
+        _machine.FaultOccurred += OnMachineFaultOccurred;
+
+        State = _machine.State;
+        PartCount = _machine.PartCount;
+
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += OnTimerTick;
-    }
-
-    private void OnTimerTick(object? sender, EventArgs e)
-    {
-        PartCount++;
-
-
-        // Randomly trigger an alarm with a 5% chance
-        if (new Random().NextDouble() < FaultChance)
-        {
-            var reason = s_faultReasons[Random.Shared.Next(s_faultReasons.Length)];
-            Log.Add($"{DateTime.Now:HH:mm:ss} FAULT: {reason}");
-            State = MachineState.Alarm;
-        }
+        _timer.Start();
     }
 
     [RelayCommand(CanExecute = nameof(CanStart))]
-    private void Start() => State = MachineState.Running;
+    private void Start() => _machine.Start();
     private bool CanStart() => State == MachineState.Idle || State == MachineState.Stopped;
 
     [RelayCommand(CanExecute = nameof(CanStop))]
-    private void Stop() => State = MachineState.Stopped;
+    private void Stop() => _machine.Stop();
     private bool CanStop() => State == MachineState.Running;
 
     [RelayCommand(CanExecute = nameof(CanTriggerAlarm))]
-    private void TriggerAlarm() => State = MachineState.Alarm;
+    private void TriggerAlarm() => _machine.TriggerAlarm("Manual Fault (Test)");
     private bool CanTriggerAlarm() => State == MachineState.Running;
 
     [RelayCommand(CanExecute = nameof(CanResetAlarm))]
-    private void ResetAlarm() => State = MachineState.Idle;
+    private void ResetAlarm() => _machine.ResetAlarm();
     private bool CanResetAlarm() => State == MachineState.Alarm;
 
-    partial void OnStateChanged(MachineState value)
+    private void OnTimerTick(object? sender, EventArgs e)
     {
-        Log.Add($"{DateTime.Now:HH:mm:ss} - State -> {value}");
-
-        if (value == MachineState.Running)
-        {
-            _timer.Start();
-        }
-        else
-        {
-            _timer.Stop();
-        }
+        _machine.Tick();
     }
+
+    private void OnMachineStateChanged()
+    {
+        State = _machine.State;
+
+        AddLog($"State -> {State}");
+    }
+
+    private void OnMachinePartCountChanged() => PartCount = _machine.PartCount;
+
+    private void OnMachineFaultOccurred(string reason) => AddLog($"FAULT: {reason}");
+
+    private void AddLog(string message) => Log.Add($"{DateTime.Now:HH:mm:ss} {message}");
 }
