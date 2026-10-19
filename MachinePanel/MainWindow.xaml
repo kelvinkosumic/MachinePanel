@@ -24,8 +24,10 @@
             <Button Content="Stop" Command="{Binding StopCommand}" Margin="0,0,0,5"/>
             <Button Content="Simulate Fault" Command="{Binding TriggerAlarmCommand}" Margin="0,0,0,5"/>
             <Button Content="Reset Alarm" Command="{Binding ResetAlarmCommand}" Margin="0,0,0,5"/>
+
+            <TextBlock Text="{Binding PartCount, StringFormat='Parts: {0}'}" FontSize="16" Margin="0,15,0,0"/>
         </StackPanel>
-        
+
         <ListBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Log}"/>
         
         <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding State, StringFormat='Status : {0}'}" Margin="0,10,0,0"/>

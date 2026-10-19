@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
+using System.Windows.Threading;
 
 namespace MachinePanel;
 
@@ -24,6 +25,40 @@ public partial class MainViewModel : ObservableObject
 
     public ObservableCollection<string> Log { get; } = new();
 
+    private readonly DispatcherTimer _timer;
+
+    private const double FaultChance = 0.05;
+
+    private static readonly string[] s_faultReasons =
+    {
+        "Conveyer jam",
+        "Sensor timeout",
+        "Vacuum pressure low"
+    };
+
+    [ObservableProperty]
+    private int _partCount;
+
+    public MainViewModel()
+    {
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _timer.Tick += OnTimerTick;
+    }
+
+    private void OnTimerTick(object? sender, EventArgs e)
+    {
+        PartCount++;
+
+
+        // Randomly trigger an alarm with a 5% chance
+        if (new Random().NextDouble() < FaultChance)
+        {
+            var reason = s_faultReasons[Random.Shared.Next(s_faultReasons.Length)];
+            Log.Add($"{DateTime.Now:HH:mm:ss} FAULT: {reason}");
+            State = MachineState.Alarm;
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanStart))]
     private void Start() => State = MachineState.Running;
     private bool CanStart() => State == MachineState.Idle || State == MachineState.Stopped;
@@ -43,6 +78,14 @@ public partial class MainViewModel : ObservableObject
     partial void OnStateChanged(MachineState value)
     {
         Log.Add($"{DateTime.Now:HH:mm:ss} - State -> {value}");
-    }
 
+        if (value == MachineState.Running)
+        {
+            _timer.Start();
+        }
+        else
+        {
+            _timer.Stop();
+        }
+    }
 }
