@@ -26,6 +26,8 @@
             <Button Content="Reset Alarm" Command="{Binding ResetAlarmCommand}" Margin="0,0,0,5"/>
 
             <TextBlock Text="{Binding PartCount, StringFormat='Parts: {0}'}" FontSize="16" Margin="0,15,0,0"/>
+            <TextBlock Text="{Binding LastCycleSeconds, StringFormat='Last cycle: {0:F2} s'}" Margin="0,5,0,0"/>
+            <TextBlock Text="{Binding RunTimeText, StringFormat='Run time: {0:F0} s'}" Margin="0,5,0,0"/>
         </StackPanel>
 
         <!--<ListBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Log}"/> -->

@@ -9,8 +9,9 @@ A WPF desktop app that simulates a semiconductor-style equipment control panel: 
 ## Features
 
 - **Machine state machine:** Idle, Running, Stopped and Alarm, with buttons enabled only when an action is allowed in the current state
-- **Simulated production:** produces one part per second while running
-- **Random faults:** 5% chance per second of a fault (conveyor jam, sensor timeout, vacuum pressure low), plus a manual fault button for testing
+- **Simulated production:** each part takes a random 0.8–1.5 s cycle time; the panel shows the last cycle time
+- **Run time:** total time spent running (stopped and alarm time are excluded)
+- **Random faults:** 5% chance per part (conveyor jam, sensor timeout, vacuum pressure low), plus a manual fault button for testing
 - **Event log:** every state change and fault is shown with a timestamp
 - **Persistent history:** events are saved to a SQLite database and survive restarts
 - **Fault summary:** shows how often each fault has occurred, queried from the database
@@ -39,6 +40,18 @@ The app follows MVVM, with the machine logic kept independent of the UI.
 Because the machine is a separate class, the simulated machine can later be replaced with a real equipment connection (for example SECS/GEM or a PLC) without changing the UI.
 
 ## Getting started
+
+### Option 1 : Download the release (Windows x64 only)
+1. Download the latest release from the [Releases page](https://github.com/kelvinkosumic/MachinePanel/releases)
+2. Run `MachinePanel.exe`.
+
+Requires Windows x64. No .NET installation is needed because the runtime is included.
+
+> The app saves its database next to the `.exe`, so don't extract it into a protected folder like `Program Files`.
+>
+> Windows may show a SmartScreen warning because the app isn't code-signed. Click **More info**, then **Run anyway**.
+
+### Option 2 : Build from source
 
 Requirements:
 
@@ -76,3 +89,9 @@ ORDER BY Times DESC;
 
 - [ ] SECS/GEM communication with a simulated host
 - [ ] PLC connectivity
+
+## Author
+
+Build by Kelvin Goh Chor Cuang as a portfolio project for semiconductor equipment automation.
+
+[LinkedIn](www.linkedin.com/in/kelvin-goh-chor-cuang) · [GitHub](https://github.com/kelvinkosumic)

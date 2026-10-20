@@ -6,12 +6,14 @@ using System.Collections.ObjectModel;
 using System.Text;
 using System.Windows.Threading;
 using MachinePanel;
+using System.Diagnostics;
 
 public partial class MainViewModel : ObservableObject
 {
     private readonly Machine _machine = new();
     private readonly DispatcherTimer _timer;
     private readonly EventStore _eventStore = new();
+    private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(StopCommand), nameof(TriggerAlarmCommand), nameof(ResetAlarmCommand))]
@@ -19,6 +21,13 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private int _partCount;
+    [ObservableProperty]
+    private double _lastCycleSeconds;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RunTimeText))]
+    private TimeSpan _totalElapsedDuration = TimeSpan.Zero;
+
+    public string RunTimeText => TotalElapsedDuration.ToString(@"hh\:mm\:ss");
 
     public ObservableCollection<string> Log { get; } = new();
     public ObservableCollection<FaultSummary> FaultSummaries { get; } = new();
@@ -28,11 +37,13 @@ public partial class MainViewModel : ObservableObject
         _machine.StateChanged += OnMachineStateChanged;
         _machine.PartCountChanged += OnMachinePartCountChanged;
         _machine.FaultOccurred += OnMachineFaultOccurred;
+        _machine.CycleCompleted += OnMachineCycleCompleted;
+        _machine.ElapsedDurationChanged += OnMachineTotalElapsedDurationChanged;
 
         State = _machine.State;
         PartCount = _machine.PartCount;
 
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
         _timer.Tick += OnTimerTick;
         _timer.Start();
 
@@ -57,7 +68,9 @@ public partial class MainViewModel : ObservableObject
 
     private void OnTimerTick(object? sender, EventArgs e)
     {
-        _machine.Tick();
+        var elapsed = _stopwatch.Elapsed;
+        _stopwatch.Restart();
+        _machine.Tick(elapsed);
     }
 
     private void OnMachineStateChanged()
@@ -73,6 +86,13 @@ public partial class MainViewModel : ObservableObject
     {
         AddLog(EventTypes.Fault, reason);
         RefreshFaultSummary();
+    }
+
+    private void OnMachineCycleCompleted(TimeSpan cycleTime) => LastCycleSeconds = cycleTime.TotalSeconds;
+
+    private void OnMachineTotalElapsedDurationChanged()
+    {
+        TotalElapsedDuration = _machine.TotalElapsedDuration;
     }
 
     private void AddLog(string eventType, string message)
