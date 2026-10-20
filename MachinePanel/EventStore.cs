@@ -46,4 +46,30 @@ public class EventStore
         command.Parameters.AddWithValue("$message", message);
         command.ExecuteNonQuery();
     }
+
+    public List<FaultSummary> GetFaultSummary()
+    {
+        var results = new List<FaultSummary>();
+
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT Message, COUNT(*) AS Times
+            FROM MachineEvents
+            WHERE EventType = @eventType
+            GROUP BY Message
+            ORDER BY Times DESC
+            """;
+        command.Parameters.AddWithValue("@eventType", EventTypes.Fault);
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            results.Add(new FaultSummary(reader.GetString(0), reader.GetInt64(1)));
+        }
+
+        return results;
+    }
 }

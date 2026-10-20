@@ -21,6 +21,7 @@ public partial class MainViewModel : ObservableObject
     private int _partCount;
 
     public ObservableCollection<string> Log { get; } = new();
+    public ObservableCollection<FaultSummary> FaultSummaries { get; } = new();
 
     public MainViewModel()
     {
@@ -34,6 +35,8 @@ public partial class MainViewModel : ObservableObject
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += OnTimerTick;
         _timer.Start();
+
+        RefreshFaultSummary();
     }
 
     [RelayCommand(CanExecute = nameof(CanStart))]
@@ -61,17 +64,30 @@ public partial class MainViewModel : ObservableObject
     {
         State = _machine.State;
 
-        AddLog($"State", State.ToString());
+        AddLog(EventTypes.State, State.ToString());
     }
 
     private void OnMachinePartCountChanged() => PartCount = _machine.PartCount;
 
-    private void OnMachineFaultOccurred(string reason) => AddLog($"Fault", reason);
+    private void OnMachineFaultOccurred(string reason)
+    {
+        AddLog(EventTypes.Fault, reason);
+        RefreshFaultSummary();
+    }
 
     private void AddLog(string eventType, string message)
     {
         var currentTime = DateTime.Now;
         _eventStore.Add(currentTime, eventType, message);
         Log.Add($"{currentTime:HH:mm:ss} - {eventType}: {message}");
+    }
+
+    private void RefreshFaultSummary()
+    {
+        FaultSummaries.Clear();
+        foreach(FaultSummary summary in _eventStore.GetFaultSummary())
+        {
+            FaultSummaries.Add(summary);
+        }
     }
 }
