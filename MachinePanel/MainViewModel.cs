@@ -11,6 +11,7 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly Machine _machine = new();
     private readonly DispatcherTimer _timer;
+    private readonly EventStore _eventStore = new();
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(StopCommand), nameof(TriggerAlarmCommand), nameof(ResetAlarmCommand))]
@@ -60,12 +61,17 @@ public partial class MainViewModel : ObservableObject
     {
         State = _machine.State;
 
-        AddLog($"State -> {State}");
+        AddLog($"State", State.ToString());
     }
 
     private void OnMachinePartCountChanged() => PartCount = _machine.PartCount;
 
-    private void OnMachineFaultOccurred(string reason) => AddLog($"FAULT: {reason}");
+    private void OnMachineFaultOccurred(string reason) => AddLog($"Fault", reason);
 
-    private void AddLog(string message) => Log.Add($"{DateTime.Now:HH:mm:ss} {message}");
+    private void AddLog(string eventType, string message)
+    {
+        var currentTime = DateTime.Now;
+        _eventStore.Add(currentTime, eventType, message);
+        Log.Add($"{currentTime:HH:mm:ss} - {eventType}: {message}");
+    }
 }

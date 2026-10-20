@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MachinePanel"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="500">
+        Title="MainWindow" Height="450" Width="500">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -29,7 +29,7 @@
         </StackPanel>
 
         <ListBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Log}"/>
-        
+
         <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding State, StringFormat='Status : {0}'}" Margin="0,10,0,0"/>
 
 

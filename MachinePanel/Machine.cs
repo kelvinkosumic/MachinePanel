@@ -10,7 +10,7 @@ public class Machine
 
     private static readonly string[] s_faultReasons =
     {
-        "Conveyer jam",
+        "Conveyor jam",
         "Sensor timeout",
         "Vacuum pressure low"
     };
@@ -47,8 +47,8 @@ public class Machine
     {
         if (State != MachineState.Running) return;
 
-        SetState(MachineState.Alarm);
         FaultOccurred?.Invoke(reason);
+        SetState(MachineState.Alarm);
     }
 
     public void Tick()
