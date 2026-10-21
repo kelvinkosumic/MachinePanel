@@ -15,6 +15,7 @@ A WPF desktop app that simulates a semiconductor-style equipment control panel: 
 - **Event log:** every state change and fault is shown with a timestamp
 - **Persistent history:** events are saved to a SQLite database and survive restarts
 - **Fault summary:** shows how often each fault has occurred, queried from the database
+- **Cycle summary:** cycle data saved to the database and shows production stats
 
 ## Tech stack
 
@@ -84,6 +85,14 @@ WHERE EventType = 'Fault'
 GROUP BY Message
 ORDER BY Times DESC;
 ```
+
+Cycles are stored in the `ProductionCycles` table:
+| Column | Description |
+|---|---|
+| `Id` | Auto-numbered row ID |
+| `CompletedAt` | Timestamp (`yyyy-MM-dd HH:mm:ss`) |
+| `PartNumber` | At what part number after reset |
+| `CycleTimeMs` | Time it took for the cycle to complete (`milliseconds`) |
 
 ## Roadmap
 

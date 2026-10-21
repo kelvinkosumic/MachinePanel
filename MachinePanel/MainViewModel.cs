@@ -1,18 +1,18 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Text;
 using System.Windows.Threading;
-using MachinePanel;
 using System.Diagnostics;
+using System.IO;
+
+namespace MachinePanel;
 
 public partial class MainViewModel : ObservableObject
 {
     private readonly Machine _machine = new();
     private readonly DispatcherTimer _timer;
-    private readonly EventStore _eventStore = new();
+    private readonly EventStore _eventStore;
+    private readonly CycleStore _cycleStore;
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
     [ObservableProperty]
@@ -21,24 +21,32 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private int _partCount;
+
     [ObservableProperty]
     private double _lastCycleSeconds;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RunTimeText))]
     private TimeSpan _totalElapsedDuration = TimeSpan.Zero;
-
     public string RunTimeText => TotalElapsedDuration.ToString(@"hh\:mm\:ss");
+
+    [ObservableProperty]
+    private CycleSummary _cycleSummaries = new CycleSummary(0, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero);
 
     public ObservableCollection<string> Log { get; } = new();
     public ObservableCollection<FaultSummary> FaultSummaries { get; } = new();
 
     public MainViewModel()
     {
+        var dbPath = Path.Combine(AppContext.BaseDirectory, "machine.db");
+        var connectionString = $"Data Source={dbPath}";
+        _eventStore = new(connectionString);
+        _cycleStore = new(connectionString);
+
         _machine.StateChanged += OnMachineStateChanged;
         _machine.PartCountChanged += OnMachinePartCountChanged;
         _machine.FaultOccurred += OnMachineFaultOccurred;
         _machine.CycleCompleted += OnMachineCycleCompleted;
-        _machine.ElapsedDurationChanged += OnMachineTotalElapsedDurationChanged;
+        _machine.TickOccurred += OnMachineTickOccurred;
 
         State = _machine.State;
         PartCount = _machine.PartCount;
@@ -48,6 +56,7 @@ public partial class MainViewModel : ObservableObject
         _timer.Start();
 
         RefreshFaultSummary();
+        RefreshCycleSummary();
     }
 
     [RelayCommand(CanExecute = nameof(CanStart))]
@@ -76,11 +85,13 @@ public partial class MainViewModel : ObservableObject
     private void OnMachineStateChanged()
     {
         State = _machine.State;
-
         AddLog(EventTypes.State, State.ToString());
     }
 
-    private void OnMachinePartCountChanged() => PartCount = _machine.PartCount;
+    private void OnMachinePartCountChanged()
+    {
+        PartCount = _machine.PartCount;
+    }
 
     private void OnMachineFaultOccurred(string reason)
     {
@@ -88,9 +99,15 @@ public partial class MainViewModel : ObservableObject
         RefreshFaultSummary();
     }
 
-    private void OnMachineCycleCompleted(TimeSpan cycleTime) => LastCycleSeconds = cycleTime.TotalSeconds;
+    private void OnMachineCycleCompleted(TimeSpan cycleTime)
+    {
+        LastCycleSeconds = cycleTime.TotalSeconds;
 
-    private void OnMachineTotalElapsedDurationChanged()
+        _cycleStore.Add(DateTime.Now, _machine.PartCount, (int)cycleTime.TotalMilliseconds);
+        RefreshCycleSummary();
+    }
+
+    private void OnMachineTickOccurred()
     {
         TotalElapsedDuration = _machine.TotalElapsedDuration;
     }
@@ -109,5 +126,11 @@ public partial class MainViewModel : ObservableObject
         {
             FaultSummaries.Add(summary);
         }
+    }
+
+    private void RefreshCycleSummary()
+    {
+        CycleSummary summary = _cycleStore.GetCycleSummary();
+        CycleSummaries = summary;
     }
 }

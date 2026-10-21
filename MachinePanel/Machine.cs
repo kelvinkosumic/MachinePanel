@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿
 
 namespace MachinePanel;
 
@@ -28,7 +26,7 @@ public class Machine
 
     public event Action? StateChanged;
     public event Action? PartCountChanged;
-    public event Action? ElapsedDurationChanged;
+    public event Action? TickOccurred;
     public event Action<TimeSpan>? CycleCompleted;
     public event Action<string>? FaultOccurred;
 
@@ -69,7 +67,7 @@ public class Machine
         _cycleElapsed += elapsed;
         TotalElapsedDuration += elapsed;
 
-        ElapsedDurationChanged?.Invoke();
+        TickOccurred?.Invoke();
 
         if (_cycleElapsed < _cycleTarget) return;
 

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MachinePanel"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="500">
+        Title="Machine Panel" Height="450" Width="550">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -13,7 +13,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="150"/>
+            <ColumnDefinition Width="200"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         
@@ -27,7 +27,27 @@
 
             <TextBlock Text="{Binding PartCount, StringFormat='Parts: {0}'}" FontSize="16" Margin="0,15,0,0"/>
             <TextBlock Text="{Binding LastCycleSeconds, StringFormat='Last cycle: {0:F2} s'}" Margin="0,5,0,0"/>
-            <TextBlock Text="{Binding RunTimeText, StringFormat='Run time: {0:F0} s'}" Margin="0,5,0,0"/>
+            <TextBlock Text="{Binding RunTimeText, StringFormat='Run time: {0}'}" Margin="0,5,0,0"/>
+            <TextBlock Text="Cycle Summary (all time)" FontWeight="Bold" Margin="0,20,0,5"/>
+
+            
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Total Parts: "/>
+                <TextBlock Text="{Binding CycleSummaries.Count}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Average cycle time: "/>
+                <TextBlock Text="{Binding CycleSummaries.AverageCycleTime.TotalSeconds, StringFormat='{}{0:F2} s'}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Minimum cycle time: "/>
+                <TextBlock Text="{Binding CycleSummaries.MinCycleTime.TotalSeconds, StringFormat='{}{0:F2} s'}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Maximum cycle time: "/>
+                <TextBlock Text="{Binding CycleSummaries.MaxCycleTime.TotalSeconds, StringFormat='{}{0:F2} s'}"/>
+            </StackPanel>
+
         </StackPanel>
 
         <!--<ListBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Log}"/> -->

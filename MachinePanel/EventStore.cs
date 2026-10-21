@@ -1,8 +1,4 @@
 ﻿using Microsoft.Data.Sqlite;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
 
 namespace MachinePanel;
 
@@ -10,10 +6,9 @@ public class EventStore
 {
     private readonly string _connectionString;
 
-    public EventStore()
+    public EventStore(string connectionString)
     {
-        var dbPath = Path.Combine(AppContext.BaseDirectory, "machine.db");
-        _connectionString = $"Data Source={dbPath}";
+        _connectionString = connectionString;
 
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
@@ -58,11 +53,11 @@ public class EventStore
         command.CommandText = """
             SELECT Message, COUNT(*) AS Times
             FROM MachineEvents
-            WHERE EventType = @eventType
+            WHERE EventType = $eventType
             GROUP BY Message
             ORDER BY Times DESC
             """;
-        command.Parameters.AddWithValue("@eventType", EventTypes.Fault);
+        command.Parameters.AddWithValue("$eventType", EventTypes.Fault);
 
         using var reader = command.ExecuteReader();
         while (reader.Read())
