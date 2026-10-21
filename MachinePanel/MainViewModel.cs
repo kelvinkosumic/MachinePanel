@@ -14,6 +14,7 @@ public partial class MainViewModel : ObservableObject
     private readonly EventStore _eventStore;
     private readonly CycleStore _cycleStore;
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+    private readonly SecsEquipmentService _secsEquipmentService = new(new TraceSecsLogger());
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(StopCommand), nameof(TriggerAlarmCommand), nameof(ResetAlarmCommand))]
@@ -57,6 +58,8 @@ public partial class MainViewModel : ObservableObject
 
         RefreshFaultSummary();
         RefreshCycleSummary();
+
+        _secsEquipmentService.Start();
     }
 
     [RelayCommand(CanExecute = nameof(CanStart))]
