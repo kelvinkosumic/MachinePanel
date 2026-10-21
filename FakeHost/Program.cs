@@ -67,6 +67,18 @@ static async Task HandlePrimaryMessagesAsync(SecsGem secsGem, CancellationToken 
                 };
                 await e.TryReplyAsync(s6f12, token);
             }
+            else if(primary.S == 5 && primary.F == 1)
+            {
+                PrintAlarmReport(primary);
+
+                using var s5f2 = new SecsMessage(5, 2)
+                {
+                    Name = "AlarmAck",
+                    SecsItem = B(0),
+                };
+
+                await e.TryReplyAsync(s5f2, token);
+            }
         }
         
     }
@@ -87,4 +99,22 @@ static void PrintEventReport(SecsMessage s6f11)
     uint partCount = values[1].FirstValue<uint>();
 
     Console.WriteLine($"[Host] Event {ceid}: state={state}, parts={partCount}");
+}
+
+static void PrintAlarmReport(SecsMessage s5f1)
+{
+    const byte ALCD_SET_BIT = 0x80;
+    const byte ALCD_CATEGORY_MASK = 0x7F;
+
+    var item = s5f1.SecsItem;
+    if (item is null) return;
+
+    byte alarmCode = item[0].FirstValue<byte>();
+    uint alarmId = item[1].FirstValue<uint>();
+    string alarmText = item[2].GetString();
+
+    bool isSet = (alarmCode & ALCD_SET_BIT) != 0;
+    int category = alarmCode & ALCD_CATEGORY_MASK;
+
+    Console.WriteLine($"[Host] Alarm {(isSet ? "SET" : "CLEARED")}: ALID={alarmId} \"{alarmText}\" (category {category})");
 }

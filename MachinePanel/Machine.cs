@@ -16,19 +16,30 @@ public class Machine
         "Vacuum pressure low"
     };
 
+    public static readonly MachineAlarm ManualFaultAlarm = new(99, "Manual fault (test)");
+
+    private static readonly MachineAlarm[] s_randomFaultAlarms =
+    {
+        new(1, "Conveyer jam"),
+        new(2, "Sensor timeout"),
+        new(3, "Vacuum pressure"),
+    };
+
     private TimeSpan _cycleElapsed = TimeSpan.Zero;
     private TimeSpan _cycleTarget = NextCycleTarget();
 
     public MachineState State { get; private set; } = MachineState.Idle;
     public int PartCount { get; private set; }
     public TimeSpan TotalElapsedDuration { get; private set; }
+    public MachineAlarm? ActiveAlarm { get; private set; }
     
 
     public event Action? StateChanged;
     public event Action? PartCountChanged;
     public event Action? TickOccurred;
     public event Action<TimeSpan>? CycleCompleted;
-    public event Action<string>? FaultOccurred;
+    public event Action<MachineAlarm>? FaultOccurred;
+    public event Action<MachineAlarm>? AlarmCleared;
 
     public void Start()
     {
@@ -48,15 +59,20 @@ public class Machine
     {
         if(State != MachineState.Alarm) return;
 
+        var clearedAlarm = ActiveAlarm;
+        ActiveAlarm = null;
         _cycleElapsed = TimeSpan.Zero;
+
+        if (clearedAlarm is not null) AlarmCleared?.Invoke(clearedAlarm);
         SetState(MachineState.Idle);
     }
 
-    public void TriggerAlarm(string reason)
+    public void TriggerAlarm(MachineAlarm alarm)
     {
         if (State != MachineState.Running) return;
 
-        FaultOccurred?.Invoke(reason);
+        ActiveAlarm = alarm;
+        FaultOccurred?.Invoke(alarm);
         SetState(MachineState.Alarm);
     }
 
@@ -81,7 +97,7 @@ public class Machine
 
         if(Random.Shared.NextDouble() < FaultChancePerPart)
         {
-            var reason = s_faultReasons[Random.Shared.Next(s_faultReasons.Length)];
+            var reason = s_randomFaultAlarms[Random.Shared.Next(s_randomFaultAlarms.Length)];
             TriggerAlarm(reason);
         }
     }

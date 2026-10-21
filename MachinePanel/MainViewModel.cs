@@ -48,6 +48,7 @@ public partial class MainViewModel : ObservableObject
         _machine.FaultOccurred += OnMachineFaultOccurred;
         _machine.CycleCompleted += OnMachineCycleCompleted;
         _machine.TickOccurred += OnMachineTickOccurred;
+        _machine.AlarmCleared += OnMachineAlarmCleared;
 
         State = _machine.State;
         PartCount = _machine.PartCount;
@@ -71,7 +72,7 @@ public partial class MainViewModel : ObservableObject
     private bool CanStop() => State == MachineState.Running;
 
     [RelayCommand(CanExecute = nameof(CanTriggerAlarm))]
-    private void TriggerAlarm() => _machine.TriggerAlarm("Manual Fault (Test)");
+    private void TriggerAlarm() => _machine.TriggerAlarm(Machine.ManualFaultAlarm);
     private bool CanTriggerAlarm() => State == MachineState.Running;
 
     [RelayCommand(CanExecute = nameof(CanResetAlarm))]
@@ -98,10 +99,17 @@ public partial class MainViewModel : ObservableObject
         PartCount = _machine.PartCount;
     }
 
-    private void OnMachineFaultOccurred(string reason)
+    private void OnMachineFaultOccurred(MachineAlarm alarm)
     {
-        AddLog(EventTypes.Fault, reason);
+        AddLog(EventTypes.Fault, alarm.Text);
         RefreshFaultSummary();
+        _ = _secsEquipmentService.SendAlarmAsync(alarm, isSet: true);
+    }
+
+    private void OnMachineAlarmCleared(MachineAlarm alarm)
+    {
+        _ = _secsEquipmentService.SendAlarmAsync(alarm, isSet: false);
+
     }
 
     private void OnMachineCycleCompleted(TimeSpan cycleTime)

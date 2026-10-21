@@ -17,6 +17,9 @@ public sealed class SecsEquipmentService : IAsyncDisposable
     private const uint CEID_MACHINE_STATE_CHANGED = 1000;
     private const uint RPTID_MACHINE_STATUS = 1;
 
+    private const byte ALCD_SET_BIT = 0x80;
+    private const byte ALARM_CATEGORY_EQUIPMENT_STATUS = 6;
+
     private readonly ISecsGemLogger _logger;
 
     private static readonly string s_softwareRevision = typeof(SecsEquipmentService).Assembly.GetName().Version?.ToString(3) ?? "unknown";
@@ -74,8 +77,6 @@ public sealed class SecsEquipmentService : IAsyncDisposable
 
     public async Task SendStateChangedAsync(MachineState state, int partCount)
     {
-        if (_connection.State != ConnectionState.Selected) return;
-
         using var s6f11 = new SecsMessage(6, 11)
         {
             Name = "MachineStateChanged",
@@ -94,13 +95,37 @@ public sealed class SecsEquipmentService : IAsyncDisposable
             )
         };
 
+        await SendIfSelectedAsync(s6f11);
+    }
+
+    public async Task SendAlarmAsync(MachineAlarm alarm, bool isSet)
+    {
+        byte alarmCode = isSet ? (byte)(ALCD_SET_BIT | ALARM_CATEGORY_EQUIPMENT_STATUS) : ALARM_CATEGORY_EQUIPMENT_STATUS;
+
+        using var s5f1 = new SecsMessage(5, 1)
+        {
+            Name = isSet ? "AlarmSet" : "AlarmCleared",
+            SecsItem = L(
+                B(alarmCode),
+                U4(alarm.Id),
+                A(alarm.Text)
+                )
+        };
+
+        await SendIfSelectedAsync(s5f1);
+    }
+
+    private async Task SendIfSelectedAsync(SecsMessage message)
+    {
+        if (_connection.State != ConnectionState.Selected) return;
+
         try
         {
-            using var s6f12 = await _secsGem.SendAsync(s6f11, _cts.Token);
+            using var reply = await _secsGem.SendAsync(message, _cts.Token);
         }
         catch(SecsException ex)
         {
-            _logger.Warning($"S6F11 failed : {ex.Message}");
+            _logger.Warning($"{message.Name} failed: {ex.Message}");
         }
     }
 
