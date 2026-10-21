@@ -13,6 +13,12 @@ public sealed class SecsEquipmentService : IAsyncDisposable
     private const string LISTEN_IP = "127.0.0.1";
     private const int HSMS_PORT = 5000;
 
+    private const uint DATA_ID = 0;
+    private const uint CEID_MACHINE_STATE_CHANGED = 1000;
+    private const uint RPTID_MACHINE_STATUS = 1;
+
+    private readonly ISecsGemLogger _logger;
+
     private static readonly string s_softwareRevision = typeof(SecsEquipmentService).Assembly.GetName().Version?.ToString(3) ?? "unknown";
 
     private readonly HsmsConnection _connection;
@@ -21,6 +27,8 @@ public sealed class SecsEquipmentService : IAsyncDisposable
 
     public SecsEquipmentService(ISecsGemLogger logger)
     {
+        _logger = logger;
+
         var options = Options.Create(new SecsGemOptions
         {
             IsActive = false,
@@ -29,8 +37,8 @@ public sealed class SecsEquipmentService : IAsyncDisposable
             DeviceId = 0,
         });
 
-        _connection = new HsmsConnection(options, logger);
-        _secsGem = new SecsGem(options, _connection, logger);
+        _connection = new HsmsConnection(options, _logger);
+        _secsGem = new SecsGem(options, _connection, _logger);
     }
 
     public void Start()
@@ -61,6 +69,38 @@ public sealed class SecsEquipmentService : IAsyncDisposable
         catch (OperationCanceledException)
         {
 
+        }
+    }
+
+    public async Task SendStateChangedAsync(MachineState state, int partCount)
+    {
+        if (_connection.State != ConnectionState.Selected) return;
+
+        using var s6f11 = new SecsMessage(6, 11)
+        {
+            Name = "MachineStateChanged",
+            SecsItem = L(
+                U4(DATA_ID),
+                U4(CEID_MACHINE_STATE_CHANGED),
+                L(
+                    L(
+                        U4(RPTID_MACHINE_STATUS),
+                        L(
+                            A(state.ToString()),
+                            U4((uint)partCount)
+                        )
+                    )
+                )
+            )
+        };
+
+        try
+        {
+            using var s6f12 = await _secsGem.SendAsync(s6f11, _cts.Token);
+        }
+        catch(SecsException ex)
+        {
+            _logger.Warning($"S6F11 failed : {ex.Message}");
         }
     }
 

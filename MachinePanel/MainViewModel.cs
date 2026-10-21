@@ -89,6 +89,8 @@ public partial class MainViewModel : ObservableObject
     {
         State = _machine.State;
         AddLog(EventTypes.State, State.ToString());
+
+        _ = _secsEquipmentService.SendStateChangedAsync(State, _machine.PartCount);
     }
 
     private void OnMachinePartCountChanged()
