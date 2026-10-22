@@ -18,26 +18,38 @@ A WPF desktop app that simulates a semiconductor-style equipment control panel: 
 - **Fault summary:** shows how often each fault has occurred, queried from the database
 - **Cycle summary:** cycle data saved to the database and shows production stats
 
-## Tech stack
+## Tech Stack
 
-- C# / .NET 10
-- WPF
-- MVVM with [CommunityToolkit.Mvvm](https://www.nuget.org/packages/CommunityToolkit.Mvvm)
-- SQLite with [Microsoft.Data.Sqlite](https://www.nuget.org/packages/Microsoft.Data.Sqlite), using parameterized queries
+- **Language:** C#, .NET 10
+- **UI:** WPF, MVVM (CommunityToolkit.Mvvm)
+- **Database:** SQLite (Microsoft.Data.Sqlite)
+- **Equipment communication:** SECS/GEM over HSMS (SECS-II messages) using secs4net
+- **Tools:** Visual Studio 2026, Git/GitHub
 
 ## Architecture
 
-The app follows MVVM, with the machine logic kept independent of the UI.
+### MachinePanel (WPF app — equipment side)
 
 | File | Role |
 |---|---|
-| `Machine.cs` | **Model.** Machine state, rules, part counting and fault simulation. Plain C# with no WPF dependency. |
-| `MachineState.cs` | The machine's possible states |
-| `MainViewModel.cs` | **ViewModel.** Exposes state, commands and the log to the UI, and drives the machine with a timer |
-| `MainWindow.xaml` | **View.** Layout and data bindings only; no logic in code-behind |
-| `EventStore.cs` | Saves events to SQLite and reads the fault summary |
-| `EventTypes.cs` | Shared constants for event types |
-| `FaultSummary.cs` | Record holding one row of the fault summary |
+| `Machine.cs` | Model: state machine, cycle timing, part counting, faults with alarm IDs. Plain C#, no WPF. |
+| `MachineState.cs` | Enum: Idle, Running, Stopped, Alarm |
+| `MachineAlarm.cs` | Record: alarm ID + text |
+| `MainViewModel.cs` | ViewModel: binds Machine to the UI, drives the timer, logs to the database, forwards events to SECS/GEM, decides on remote commands |
+| `MainWindow.xaml` | View: layout and data bindings only |
+| `MainWindow.xaml.cs` | Window plumbing: creates the ViewModel and runs clean shutdown on close |
+| `EventStore.cs` | SQLite: machine events and fault summary |
+| `CycleStore.cs` | SQLite: production cycles and all-time cycle statistics |
+| `SecsEquipmentService.cs` | SECS/GEM equipment interface (HSMS passive): S1F2, S6F11, S5F1, S2F41/S2F42 |
+| `RemoteCommandResult.cs` | Enum: result of a host command, mapped to HCACK by the SECS service |
+| `TraceSecsLogger.cs` | secs4net logger writing to the debug output |
+
+### FakeHost (console app — host simulator)
+
+| File | Role |
+|---|---|
+| `Program.cs` | Connects to the equipment (HSMS active), sends S1F1 and S2F41, receives S6F11 and S5F1 |
+| `ConsoleSecsLogger.cs` | secs4net logger writing to the console |
 
 Because the machine is a separate class, the simulated machine can later be replaced with a real equipment connection (for example SECS/GEM or a PLC) without changing the UI.
 
@@ -45,7 +57,8 @@ Because the machine is a separate class, the simulated machine can later be repl
 
 ### Option 1 : Download the release (Windows x64 only)
 1. Download the latest release from the [Releases page](https://github.com/kelvinkosumic/MachinePanel/releases)
-2. Run `MachinePanel.exe`.
+2. Unzip `MachinePanel.zip`.
+2. Run `MachinePanel.exe` and `FakeHost.exe`.
 
 Requires Windows x64. No .NET installation is needed because the runtime is included.
 
