@@ -44,6 +44,8 @@ while (true)
 
     string? input = await Task.Run(() => Console.ReadLine());
 
+    Console.Write("\n");
+
     if (input is null) break;
 
     string cleanedInput = input.Trim().ToUpperInvariant();
@@ -57,9 +59,6 @@ while (true)
         case "STOP": await SendStopCommand(secsGem); break;
         default: Console.WriteLine("[Host] Unknown input"); break;
     }
-
-
-    
 }
 
 cts.Cancel();
@@ -213,6 +212,7 @@ static void PrintAlarmReport(SecsMessage s5f1)
 
     Console.WriteLine($"[Host] Alarm {(isSet ? "SET" : "CLEARED")}: ALID={alarmId} \"{alarmText}\" (category {category})");
 }
+
 static string DescribeHcack(byte hcack) => hcack switch
 {
     0 => "Performed",

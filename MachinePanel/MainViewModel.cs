@@ -7,7 +7,7 @@ using System.IO;
 
 namespace MachinePanel;
 
-public partial class MainViewModel : ObservableObject
+public partial class MainViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly Machine _machine = new();
     private readonly DispatcherTimer _timer;
@@ -178,5 +178,12 @@ public partial class MainViewModel : ObservableObject
                 if (_machine.State == MachineState.Stopped) return RemoteCommandResult.AlreadyInState;
                 else return RemoteCommandResult.CannotPerformNow;
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _timer.Stop();
+        _timer.Tick -= OnTimerTick;
+        await _secsEquipmentService.DisposeAsync();
     }
 }

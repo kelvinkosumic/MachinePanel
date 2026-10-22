@@ -3,6 +3,7 @@
 A WPF desktop app that simulates a semiconductor-style equipment control panel: start/stop control, a state machine with alarms, a live event log, and fault history stored in a SQL database.
 
 ![MachinePanel screenshot](docs/screenshot.png)
+![FakeHost screenshot](docs/screenshot02.png)
 
 > The machine is simulated in software. No real hardware is required.
 
@@ -94,9 +95,28 @@ Cycles are stored in the `ProductionCycles` table:
 | `PartNumber` | At what part number after reset |
 | `CycleTimeMs` | Time it took for the cycle to complete (`milliseconds`) |
 
+## SECS/GEM Interface
+
+MachinePanel acts as SECS/GEM **equipment** (HSMS passive, `127.0.0.1:5000`) using [secs4net](https://github.com/mkjeff/secs4net).
+
+| Message | Direction | Purpose |
+|---|---|---|
+| S1F1 / S1F2 | Host → Equipment | Are You There → model name + software revision |
+| S6F11 / S6F12 | Equipment → Host | State change event (CEID 1000) with state + part count |
+| S5F1 / S5F2 | Equipment → Host | Alarm set / cleared, with alarm ID (ALID) and text |
+| S2F41 / S2F42 | Host → Equipment | Remote START / STOP, answered with HCACK |
+
+**FakeHost** is a console host simulator included in the solution for testing.
+Run both projects (Multiple startup projects), wait for `Selected`, then type:
+`Enter` = S1F1, `start` / `stop` = S2F41, `q` = quit.
+
+Message and ID reference: [docs/secs-gem-cheatsheet.md](docs/secs-gem-cheatsheet.md)
+
 ## Roadmap
 
-- [ ] SECS/GEM communication with a simulated host
+- [x] SECS/GEM communication with a simulated host
+- [ ] Unit tests for the machine logic
+- [ ] IP/port configuration via appsettings.json
 - [ ] PLC connectivity
 
 ## Author

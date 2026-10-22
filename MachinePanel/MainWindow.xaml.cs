@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.ComponentModel;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -16,10 +17,30 @@ namespace MachinePanel
     /// </summary>
     public partial class MainWindow : Window
     {
+        private readonly MainViewModel _viewModel;
+        private bool _isShuttingDown;
+        private bool _canClose;
+
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = new MainViewModel();
+            _viewModel = new MainViewModel();
+
+            DataContext = _viewModel;
+            Closing += OnWindowClosing;
+        }
+
+        private async void OnWindowClosing(object? sender, CancelEventArgs e)
+        {
+            if (_canClose) return;
+
+            e.Cancel = true;
+            if (_isShuttingDown) return;
+
+            _isShuttingDown = true;
+            await _viewModel.DisposeAsync();
+            _canClose = true;
+            Close();
         }
     }
 }
