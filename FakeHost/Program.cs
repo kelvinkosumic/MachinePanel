@@ -19,17 +19,52 @@ await using var connection = new HsmsConnection(options, logger);
 using var secsGem = new SecsGem(options, connection, logger);
 using var cts = new CancellationTokenSource();
 
+var selected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
 connection.ConnectionChanged += delegate
 {
     Console.WriteLine($"[Host] Connection: {connection.State}");
+    if (connection.State == ConnectionState.Selected) selected.TrySetResult();
 };
 
 connection.Start(cts.Token);
 
 _ = HandlePrimaryMessagesAsync(secsGem, cts.Token);
 
-Console.WriteLine("Press Enter to send S1F1 (Are You There). Type q to quit.");
-while(await Task.Run(() => Console.ReadLine()) != "q")
+
+Console.WriteLine("[Host] Waiting for equipment...");
+await selected.Task;
+
+Console.WriteLine("\nWelcome to a simulated host, written by Kelvin Goh Chor Cuang!");
+Console.WriteLine("\ncheck - send S1F1 (AreYouThere) \nstart - to send START command. \nstop - to send STOP command. \nq | quit - quit. \n");
+
+while (true)
+{
+    Console.Write("\nInput: ");
+
+    string? input = await Task.Run(() => Console.ReadLine());
+
+    if (input is null) break;
+
+    string cleanedInput = input.Trim().ToUpperInvariant();
+
+    if (cleanedInput == "Q" || cleanedInput == "QUIT") break;
+
+    switch (cleanedInput)
+    {
+        case "": case "CHECK": await SendAreYouOnlineCommand(secsGem); break;
+        case "START": await SendStartCommand(secsGem); break;
+        case "STOP": await SendStopCommand(secsGem); break;
+        default: Console.WriteLine("[Host] Unknown input"); break;
+    }
+
+
+    
+}
+
+cts.Cancel();
+
+static async Task SendAreYouOnlineCommand(SecsGem secsGem)
 {
     try
     {
@@ -40,13 +75,73 @@ while(await Task.Run(() => Console.ReadLine()) != "q")
         var softwareRevision = s1f2.SecsItem?[1].GetString();
         Console.WriteLine($"[Host] S1F2 reply: {modelName} v{softwareRevision}");
     }
-    catch(SecsException ex)
+    catch (SecsException ex)
+    {
+        Console.WriteLine($"[Host] Failed: {ex.Message}");
+    }
+}
+static async Task SendStartCommand(SecsGem secsGem)
+{
+    try
+    {
+        using var s2f41 = new SecsMessage(2, 41) 
+        { 
+            Name = "HostCommand", 
+            SecsItem = L(
+                A("START"),
+                L()
+                )
+        };
+        using var s2f42 = await secsGem.SendAsync(s2f41);
+
+        var item = s2f42.SecsItem;
+        if (item is null)
+        {
+            Console.WriteLine("[Host] S2F42 reply had no data");
+            return;
+        }
+
+        byte hcack = item[0].FirstValue<byte>();
+
+        Console.WriteLine($"[Host] S2F42 reply: HCACK Code {hcack} || Description {DescribeHcack(hcack)}");
+    }
+    catch (SecsException ex)
     {
         Console.WriteLine($"[Host] Failed: {ex.Message}");
     }
 }
 
-cts.Cancel();
+static async Task SendStopCommand(SecsGem secsGem)
+{
+    try
+    {
+        using var s2f41 = new SecsMessage(2, 41)
+        {
+            Name = "HostCommand",
+            SecsItem = L(
+                A("STOP"),
+                L()
+                )
+        };
+
+        using var s2f42 = await secsGem.SendAsync(s2f41);
+
+        var item = s2f42.SecsItem;
+        if (item is null)
+        {
+            Console.WriteLine("[Host] S2F42 reply had no data");
+            return;
+        }
+
+        byte hcack = item[0].FirstValue<byte>();
+
+        Console.WriteLine($"[Host] S2F42 reply: HCACK Code {hcack} || Description {DescribeHcack(hcack)}");
+    }
+    catch (SecsException ex)
+    {
+        Console.WriteLine($"[Host] Failed: {ex.Message}");
+    }
+}
 
 static async Task HandlePrimaryMessagesAsync(SecsGem secsGem, CancellationToken token)
 {
@@ -118,3 +213,14 @@ static void PrintAlarmReport(SecsMessage s5f1)
 
     Console.WriteLine($"[Host] Alarm {(isSet ? "SET" : "CLEARED")}: ALID={alarmId} \"{alarmText}\" (category {category})");
 }
+static string DescribeHcack(byte hcack) => hcack switch
+{
+    0 => "Performed",
+    1 => "Command does not exist",
+    2 => "Cannot perform now",
+    3 => "Parameter invalid",
+    4 => "Accepted, will finish later",
+    5 => "Already in desired condition",
+    6 => "No such object",
+    _ => $"Unknown HCACK {hcack}",
+};

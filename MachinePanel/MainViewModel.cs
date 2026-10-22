@@ -60,16 +60,18 @@ public partial class MainViewModel : ObservableObject
         RefreshFaultSummary();
         RefreshCycleSummary();
 
+        _secsEquipmentService.RemoteCommandHandler += OnRemoteCommandHandler;
+
         _secsEquipmentService.Start();
     }
 
     [RelayCommand(CanExecute = nameof(CanStart))]
     private void Start() => _machine.Start();
-    private bool CanStart() => State == MachineState.Idle || State == MachineState.Stopped;
+    private bool CanStart() => _machine.CanStartMachine();
 
     [RelayCommand(CanExecute = nameof(CanStop))]
     private void Stop() => _machine.Stop();
-    private bool CanStop() => State == MachineState.Running;
+    private bool CanStop() => _machine.CanStopMachine();
 
     [RelayCommand(CanExecute = nameof(CanTriggerAlarm))]
     private void TriggerAlarm() => _machine.TriggerAlarm(Machine.ManualFaultAlarm);
@@ -145,5 +147,36 @@ public partial class MainViewModel : ObservableObject
     {
         CycleSummary summary = _cycleStore.GetCycleSummary();
         CycleSummaries = summary;
+    }
+
+    private RemoteCommandResult OnRemoteCommandHandler(string command)
+    {
+        string commandUpper = command.Trim().ToUpperInvariant();
+
+        switch (commandUpper)
+        {
+            default:
+                return RemoteCommandResult.UnknownCommand;
+
+            case "START":
+                if (_machine.CanStartMachine())
+                {
+                    _machine.Start();
+                    return RemoteCommandResult.Performed;
+                }
+
+                if (_machine.State == MachineState.Running) return RemoteCommandResult.AlreadyInState;
+                else return RemoteCommandResult.CannotPerformNow;
+
+            case "STOP":
+                if (_machine.CanStopMachine())
+                {
+                    _machine.Stop();
+                    return RemoteCommandResult.Performed;
+                }
+
+                if (_machine.State == MachineState.Stopped) return RemoteCommandResult.AlreadyInState;
+                else return RemoteCommandResult.CannotPerformNow;
+        }
     }
 }

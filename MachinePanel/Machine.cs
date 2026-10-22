@@ -43,14 +43,14 @@ public class Machine
 
     public void Start()
     {
-        if (State != MachineState.Idle && State != MachineState.Stopped) return;
+        if (!CanStartMachine()) return;
 
         SetState(MachineState.Running);
     }
 
     public void Stop()
     {
-        if (State != MachineState.Running) return;
+        if (!CanStopMachine()) return;
 
         SetState(MachineState.Stopped);
     }
@@ -114,5 +114,17 @@ public class Machine
     {
         State = newState;
         StateChanged?.Invoke();
+    }
+
+    public bool CanStartMachine()
+    {
+        if (State != MachineState.Idle && State != MachineState.Stopped) return false;
+        return true;
+    }
+
+    public bool CanStopMachine()
+    {
+        if (State != MachineState.Running) return false;
+        return true;
     }
 }
