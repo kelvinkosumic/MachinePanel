@@ -65,6 +65,9 @@ public sealed class SecsEquipmentService : IAsyncDisposable
         _ = HandlePrimaryMessagesAsync(_cts.Token);
     }
 
+    /// <summary>
+    /// Handle incomming message, asynchronously
+    /// </summary>
     private async Task HandlePrimaryMessagesAsync(CancellationToken token)
     {
         try
@@ -110,6 +113,9 @@ public sealed class SecsEquipmentService : IAsyncDisposable
         await e.TryReplyAsync(s2f42, token);
     }
 
+    /// <summary>
+    /// Triggered when machine state is changed
+    /// </summary>
     public async Task SendStateChangedAsync(MachineState state, int partCount)
     {
         using var s6f11 = new SecsMessage(6, 11)
@@ -133,6 +139,9 @@ public sealed class SecsEquipmentService : IAsyncDisposable
         await SendIfSelectedAsync(s6f11);
     }
 
+    /// <summary>
+    /// Send a reply when receiving S1F1
+    /// </summary>
     private async Task SendAreYouThereReplyAsync(PrimaryMessageWrapper e, CancellationToken token)
     {
         using var s1f2 = new SecsMessage(1, 2)
@@ -143,6 +152,9 @@ public sealed class SecsEquipmentService : IAsyncDisposable
         await e.TryReplyAsync(s1f2, token);
     }
 
+    /// <summary>
+    /// Triggered when a fault occurs, sending the alarm status
+    /// </summary>
     public async Task SendAlarmAsync(MachineAlarm alarm, bool isSet)
     {
         byte alarmCode = isSet ? (byte)(ALCD_SET_BIT | ALARM_CATEGORY_EQUIPMENT_STATUS) : ALARM_CATEGORY_EQUIPMENT_STATUS;
@@ -160,6 +172,10 @@ public sealed class SecsEquipmentService : IAsyncDisposable
         await SendIfSelectedAsync(s5f1);
     }
 
+    /// <summary>
+    /// Sends a SECS message and waits for the reply, only if the HSMS session is selected
+    /// Logs a warning instead of throwing on T3 timeout or an error reply (SxF0 / S9Fx)
+    /// </summary>
     private async Task SendIfSelectedAsync(SecsMessage message)
     {
         if (_connection.State != ConnectionState.Selected) return;
@@ -174,6 +190,9 @@ public sealed class SecsEquipmentService : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Converts RemoteCommandResult to byte for host command acknowledgement
+    /// </summary>
     private static byte ToHcack(RemoteCommandResult result) => result switch
     {
         RemoteCommandResult.Performed => HCACK_PERFORMED,

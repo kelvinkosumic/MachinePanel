@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Secs4Net;
 using static Secs4Net.Item;
 
+// This is a simple console application that simulates a host communicating with a SECS/GEM equipment
 const string EQUIPMENT_IP = "127.0.0.1";
 const int HSMS_PORT = 5000;
 
@@ -21,6 +22,7 @@ using var cts = new CancellationTokenSource();
 
 var selected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
+// Handle connection state changes
 connection.ConnectionChanged += delegate
 {
     Console.WriteLine($"[Host] Connection: {connection.State}");
@@ -29,6 +31,7 @@ connection.ConnectionChanged += delegate
 
 connection.Start(cts.Token);
 
+// Start handling incoming primary messages from the equipment
 _ = HandlePrimaryMessagesAsync(secsGem, cts.Token);
 
 
@@ -42,6 +45,7 @@ while (true)
 {
     Console.Write("\nInput: ");
 
+    // Read input from console in a non-blocking way, so that we can still handle incoming messages from the equipment
     string? input = await Task.Run(() => Console.ReadLine());
 
     Console.Write("\n");

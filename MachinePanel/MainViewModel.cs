@@ -10,9 +10,21 @@ namespace MachinePanel;
 public partial class MainViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly Machine _machine = new();
+    /// <summary>
+    /// For ticking every x ms
+    /// </summary>
     private readonly DispatcherTimer _timer;
+    /// <summary>
+    /// Logging events data
+    /// </summary>
     private readonly EventStore _eventStore;
+    /// <summary>
+    /// Storing cycles data
+    /// </summary>
     private readonly CycleStore _cycleStore;
+    /// <summary>
+    /// To calculate the time machine has ran
+    /// </summary>
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly SecsEquipmentService _secsEquipmentService = new(new TraceSecsLogger());
 
@@ -20,11 +32,18 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(StopCommand), nameof(TriggerAlarmCommand), nameof(ResetAlarmCommand))]
     private MachineState _state;
 
+    /// <summary>
+    /// How many parts have run without a fault
+    /// </summary>
     [ObservableProperty]
     private int _partCount;
 
+    /// <summary>
+    /// How many seconds the last cycle took
+    /// </summary>
     [ObservableProperty]
     private double _lastCycleSeconds;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RunTimeText))]
     private TimeSpan _totalElapsedDuration = TimeSpan.Zero;
@@ -149,6 +168,9 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         CycleSummaries = summary;
     }
 
+    /// <summary>
+    /// Handle incoming remote command from HOST
+    /// </summary>
     private RemoteCommandResult OnRemoteCommandHandler(string command)
     {
         string commandUpper = command.Trim().ToUpperInvariant();

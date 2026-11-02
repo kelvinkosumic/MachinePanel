@@ -5,6 +5,7 @@ namespace MachinePanel;
 public class EventStore
 {
     private readonly string _connectionString;
+    private const string TABLE_NAME = "MachineEvents";
 
     public EventStore(string connectionString)
     {
@@ -14,8 +15,8 @@ public class EventStore
         connection.Open();
 
         using var command = connection.CreateCommand();
-        command.CommandText = """
-            CREATE TABLE IF NOT EXISTS MachineEvents(
+        command.CommandText = $"""
+            CREATE TABLE IF NOT EXISTS {TABLE_NAME}(
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 LoggedAt TEXT NOT NULL,
                 EventType TEXT NOT NULL,
@@ -32,8 +33,8 @@ public class EventStore
         connection.Open();
 
         using var command = connection.CreateCommand();
-        command.CommandText = """
-            INSERT INTO MachineEvents(LoggedAt, EventType, Message)
+        command.CommandText = $"""
+            INSERT INTO {TABLE_NAME}(LoggedAt, EventType, Message)
             VALUES ($loggedAt, $eventType, $message)
             """;
         command.Parameters.AddWithValue("$loggedAt", loggedAt.ToString("yyyy-MM-dd HH:mm:ss"));
@@ -50,9 +51,9 @@ public class EventStore
         connection.Open();
 
         using var command = connection.CreateCommand();
-        command.CommandText = """
+        command.CommandText = $"""
             SELECT Message, COUNT(*) AS Times
-            FROM MachineEvents
+            FROM {TABLE_NAME}
             WHERE EventType = $eventType
             GROUP BY Message
             ORDER BY Times DESC

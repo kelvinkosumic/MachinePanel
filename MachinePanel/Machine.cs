@@ -4,20 +4,22 @@ namespace MachinePanel;
 
 public class Machine
 {
+    /// <summary>
+    /// Chance of a simulated fault per parts ran (0.05 == 5% chance per part)
+    /// </summary>
     private const double FaultChancePerPart = 0.05;
 
+    /// <summary>
+    /// Randomized cycle time between s_minCycleTime and s_maxCycleTime
+    /// </summary>
     private static readonly TimeSpan s_minCycleTime = TimeSpan.FromSeconds(0.8);
     private static readonly TimeSpan s_maxCycleTime = TimeSpan.FromSeconds(1.5);
 
-    private static readonly string[] s_faultReasons =
-    {
-        "Conveyor jam",
-        "Sensor timeout",
-        "Vacuum pressure low"
-    };
-
     public static readonly MachineAlarm ManualFaultAlarm = new(99, "Manual fault (test)");
 
+    /// <summary>
+    /// Randomized fault reasons
+    /// </summary>
     private static readonly MachineAlarm[] s_randomFaultAlarms =
     {
         new(1, "Conveyer jam"),
@@ -25,6 +27,9 @@ public class Machine
         new(3, "Vacuum pressure"),
     };
 
+    /// <summary>
+    /// How long the last cycle took, in seconds
+    /// </summary>
     private TimeSpan _cycleElapsed = TimeSpan.Zero;
     private TimeSpan _cycleTarget = NextCycleTarget();
 
@@ -76,6 +81,9 @@ public class Machine
         SetState(MachineState.Alarm);
     }
 
+    /// <summary>
+    /// Ran every x ms
+    /// </summary>
     public void Tick(TimeSpan elapsed)
     {
         if (State != MachineState.Running) return;
@@ -102,6 +110,9 @@ public class Machine
         }
     }
 
+    /// <summary>
+    /// Picks a random time between s_maxCycleTime and s_minCycleTime
+    /// </summary>
     private static TimeSpan NextCycleTarget()
     {
         var range = s_maxCycleTime - s_minCycleTime;
